@@ -1,143 +1,117 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { config } from '@/config/environment'
 
 interface CaptchaProps {
-  onVerify: (valid: boolean, token: string) => void
+  onVerify: (valid: boolean, token: string, code: string) => void
 }
 
-function generateCaptchaCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+interface MathCaptcha {
+  token: string
+  question: string
+  answer: number
 }
 
 export function Captcha({ onVerify }: CaptchaProps) {
   const [captchaToken, setCaptchaToken] = useState('')
-  const [captchaCode, setCaptchaCode] = useState('')
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState(0)
   const [inputValue, setInputValue] = useState('')
-  const [verified, setVerified] = useState(false)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  const drawCaptcha = useCallback((code: string) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
-    gradient.addColorStop(0, '#1a1a2e')
-    gradient.addColorStop(1, '#16213e')
-    ctx.fillStyle = gradient
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-    for (let i = 0; i < 5; i++) {
-      ctx.beginPath()
-      ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height)
-      ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height)
-      ctx.strokeStyle = `rgba(${Math.random() * 100 + 100}, ${Math.random() * 100 + 100}, ${Math.random() * 200 + 55}, 0.3)`
-      ctx.lineWidth = 1
-      ctx.stroke()
-    }
-
-    for (let i = 0; i < 30; i++) {
-      ctx.beginPath()
-      ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, 1, 0, Math.PI * 2)
-      ctx.fillStyle = `rgba(${Math.random() * 155 + 100}, ${Math.random() * 155 + 100}, ${Math.random() * 155 + 100}, 0.5)`
-      ctx.fill()
-    }
-
-    const colors = ['#fbbf24', '#f59e0b', '#d97706', '#fcd34d', '#fde68a']
-    const fonts = ['bold 28px Arial', 'bold 26px Georgia', 'bold 30px Verdana']
-
-    for (let i = 0; i < code.length; i++) {
-      ctx.save()
-      ctx.font = fonts[Math.floor(Math.random() * fonts.length)]
-      ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)]
-      ctx.translate(25 + i * 28, 30)
-      ctx.rotate((Math.random() - 0.5) * 0.4)
-      ctx.fillText(code[i], 0, 0)
-      ctx.restore()
-    }
-  }, [])
 
   const refreshCaptcha = useCallback(async () => {
     try {
-      const res = await fetch(`${config.apiBaseUrl}/captcha/generate`)
+      const res = await fetch(`${config.apiBaseUrl}/api/captcha/generate`)
       const data = await res.json()
-      setCaptchaToken(data.token)
-      const code = data.code || generateCaptchaCode()
-      setCaptchaCode(code)
-      setInputValue('')
-      setVerified(false)
-      onVerify(false, '')
+      
+      if (data.token && data.question !== undefined && data.answer !== undefined) {
+        setCaptchaToken(data.token)
+        setQuestion(data.question)
+        setAnswer(data.answer)
+        setInputValue('')
+        onVerify(false, '', '')
+      } else {
+        generateLocalCaptcha()
+      }
     } catch {
-      const code = generateCaptchaCode()
-      setCaptchaCode(code)
-      setInputValue('')
-      setVerified(false)
-      onVerify(false, '')
+      generateLocalCaptcha()
     }
   }, [])
+
+  const generateLocalCaptcha = () => {
+    const num1 = Math.floor(Math.random() * 10) + 1
+    const num2 = Math.floor(Math.random() * 10) + 1
+    const operators = ['+', '-']
+    const operator = operators[Math.floor(Math.random() * operators.length)]
+    
+    let questionText: string
+    let correctAnswer: number
+    
+    if (operator === '+') {
+      questionText = `${num1} + ${num2} = ?`
+      correctAnswer = num1 + num2
+    } else {
+      questionText = `${Math.max(num1, num2)} - ${Math.min(num1, num2)} = ?`
+      correctAnswer = Math.max(num1, num2) - Math.min(num1, num2)
+    }
+    
+    setQuestion(questionText)
+    setAnswer(correctAnswer)
+    setCaptchaToken(`local_${Date.now()}_${correctAnswer}`)
+    setInputValue('')
+    onVerify(false, '', '')
+  }
 
   useEffect(() => {
     refreshCaptcha()
   }, [])
 
-  useEffect(() => {
-    if (captchaCode) {
-      drawCaptcha(captchaCode)
-    }
-  }, [captchaCode, drawCaptcha])
-
-  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.toUpperCase()
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 3)
     setInputValue(val)
-    if (val.length === 4 && captchaToken) {
-      try {
-        const res = await fetch(`${config.apiBaseUrl}/captcha/verify`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: captchaToken, code: val }),
-        })
-        const data = await res.json()
-        setVerified(data.valid)
-        onVerify(data.valid, data.valid ? captchaToken : '')
-      } catch {
-        setVerified(false)
-        onVerify(false, '')
+    
+    if (val && captchaToken) {
+      const userAnswer = parseInt(val, 10)
+      if (!isNaN(userAnswer)) {
+        onVerify(true, captchaToken, val)
+      } else {
+        onVerify(false, '', '')
       }
     } else {
-      setVerified(false)
-      onVerify(false, '')
+      onVerify(false, '', '')
     }
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <canvas
-        ref={canvasRef}
-        width={120}
-        height={44}
-        className="rounded-lg cursor-pointer"
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+      <div
+        className="
+          flex items-center justify-center px-4 py-2.5 rounded-xl cursor-pointer
+          bg-gradient-to-br from-star/20 to-star/5 
+          border border-star/30 text-star font-bold text-lg
+          select-none min-w-[140px] h-[44px]
+          hover:border-star/50 transition-all duration-200
+          w-full sm:w-auto
+        "
         onClick={refreshCaptcha}
         title="点击刷新验证码"
-      />
+      >
+        <span className="tracking-wide">{question || '加载中...'}</span>
+      </div>
       <input
         type="text"
         value={inputValue}
         onChange={handleInputChange}
-        placeholder="输入验证码"
-        maxLength={4}
-        className={`
-          flex-1 px-3 py-2.5 rounded-xl text-sm
-          bg-white/[0.04] border
+        placeholder="输入答案"
+        maxLength={3}
+        inputMode="numeric"
+        pattern="[0-9]*"
+        className="
+          flex-1 px-3 py-2.5 rounded-xl text-sm min-w-0
+          bg-white/[0.04] border border-white/[0.08]
           text-text placeholder-text-muted
-          focus:outline-none
-          uppercase tracking-widest text-center
+          focus:outline-none focus:border-star/50
+          text-center font-mono tracking-widest
           transition-colors duration-200
-          ${verified ? 'border-fortune/50 bg-fortune/5' : 'border-white/[0.08] focus:border-star/50'}
-        `}
+        "
       />
     </div>
   )

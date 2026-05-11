@@ -11,6 +11,7 @@ import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
 import { extractKnowledge, buildPromptContext } from '@/knowledge'
 import { Button, Select } from '@/components/ui'
 import { FollowUpQuestion } from '@/components/FollowUpQuestion'
+import { config } from '@/config/environment'
 
 /* ------------------------------------------------------------
    年份选项
@@ -320,7 +321,7 @@ ${yearlyContext}
 
       // 保存到服务器历史记录
       try {
-        await fetch('/api/user/history', {
+        await fetch(`${config.apiBaseUrl}/api/user/history`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

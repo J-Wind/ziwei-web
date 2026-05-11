@@ -29,8 +29,9 @@ import {
   generateKLinesWithLLM,
   type LifetimeKLinePoint,
 } from '@/lib/fortune-score'
-import { type LLMConfig, type ChatMessage } from '@/lib/llm'
+import { type LLMConfig } from '@/lib/llm'
 import { FollowUpQuestion } from '@/components/FollowUpQuestion'
+import { config } from '@/config/environment'
 
 /* ============================================================
    K 线系统提示词
@@ -331,7 +332,7 @@ ${klineSummary}
           `* **${point.age}岁（${point.year}年 ${point.ganZhi}）**：${point.score}分 - ${point.reason || '暂无解读'}`
         ).join('\n')
 
-        await fetch('/api/user/history', {
+        await fetch(`${config.apiBaseUrl}/api/user/history`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -349,17 +350,15 @@ ${klineSummary}
       console.error('K 线生成失败:', error)
       setProgress('生成失败，请重试')
 
-      // 失败时使用算法兜底
       const lifetime = generateLifetimeKLines(chart, birthInfo.year)
       setKlineCache({ lifetime, isGenerating: false })
 
-      // 保存到服务器历史记录
       try {
         const klineContent = lifetime.map(point => 
           `* **${point.age}岁（${point.year}年 ${point.ganZhi}）**：${point.score}分 - ${point.reason || '暂无解读'}`
         ).join('\n')
 
-        await fetch('/api/user/history', {
+        await fetch(`${config.apiBaseUrl}/api/user/history`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/stores'
-import { Captcha } from './Captcha'
+import { config } from '@/config/environment'
 
 export function AuthModal() {
   const { showAuthModal, authModalTab, setShowAuthModal, setAuthModalTab, login, register } = useAuthStore()
@@ -8,8 +8,6 @@ export function AuthModal() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [inviteCode, setInviteCode] = useState('')
-  const [captchaValid, setCaptchaValid] = useState(false)
-  const [captchaToken, setCaptchaToken] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [newUserPoints, setNewUserPoints] = useState(1000)
@@ -21,8 +19,6 @@ export function AuthModal() {
       setPassword('')
       setConfirmPassword('')
       setInviteCode('')
-      setCaptchaValid(false)
-      setCaptchaToken('')
       setError('')
       fetchNewUserPoints()
     }
@@ -30,13 +26,12 @@ export function AuthModal() {
 
   const fetchNewUserPoints = async () => {
     try {
-      const res = await fetch('/api/points-config')
+      const res = await fetch(`${config.apiBaseUrl}/api/points-config`)
       if (res.ok) {
         const data = await res.json()
         setNewUserPoints(data.newUserPoints || 1000)
       }
     } catch {
-      // 使用默认值
     }
   }
 
@@ -66,12 +61,11 @@ export function AuthModal() {
       setError('请输入密码')
       return
     }
-    if (!isLogin && !captchaValid) {
-      setError('请输入正确的验证码')
-      return
-    }
     if (!isLogin && password !== confirmPassword) {
       setError('两次输入的密码不一致')
+      return
+    }
+      setError('请输入正确的验证码')
       return
     }
 
@@ -80,14 +74,11 @@ export function AuthModal() {
       if (isLogin) {
         await login(phone.trim(), password)
       } else {
-        await register(phone.trim(), password, inviteCode.trim().toUpperCase() || undefined, captchaToken)
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : '操作失败，请重试'
       setError(msg)
       if (!isLogin) {
-        setCaptchaValid(false)
-        setCaptchaToken('')
       }
     } finally {
       setLoading(false)
@@ -214,10 +205,7 @@ export function AuthModal() {
 
             {!isLogin && (
               <div>
-                <Captcha
-                  onVerify={(valid, token) => {
-                    setCaptchaValid(valid)
-                    setCaptchaToken(token)
+                  onVerify={(valid, token, code) => {
                   }}
                 />
               </div>

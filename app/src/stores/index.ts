@@ -25,7 +25,7 @@ interface AuthState {
   setShowAuthModal: (show: boolean, action?: () => void) => void
   setAuthModalTab: (tab: 'login' | 'register') => void
   login: (phone: string, password: string) => Promise<void>
-  register: (phone: string, password: string, invite_code?: string, captcha_token?: string) => Promise<void>
+  register: (phone: string, password: string, invite_code?: string, ) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
   requireAuth: (action: () => void) => boolean
@@ -57,8 +57,8 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (phone, password, invite_code, captcha_token) => {
-        const res = await api.auth.register(phone, password, invite_code, captcha_token)
+      register: async (phone, password, invite_code) => {
+        const res = await api.auth.register(phone, password, invite_code)
         localStorage.setItem('ziwei-token', res.token)
         set({ token: res.token, user: res.user, isLoggedIn: true, showAuthModal: false })
         const pending = get().pendingAction

@@ -3,7 +3,7 @@
    丝滑流式输出 + 书法字体 + Markdown 渲染 + 追问功能
    ============================================================ */
 
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useChartStore, useSettingsStore, useContentCacheStore, useAuthStore } from '@/stores'
@@ -11,6 +11,7 @@ import { extractKnowledge, buildPromptContext } from '@/knowledge'
 import { streamChat, type ChatMessage, type LLMConfig } from '@/lib/llm'
 import { Button } from '@/components/ui'
 import { FollowUpQuestion } from '@/components/FollowUpQuestion'
+import { config } from '@/config/environment'
 
 /* ------------------------------------------------------------
    系统提示词
@@ -100,41 +101,41 @@ const CHAR_INTERVAL = 35
    ------------------------------------------------------------ */
 
 const MarkdownComponents = {
-  h1: ({ children }: { children?: React.ReactNode }) => (
+  h1: ({ children }: { children?: ReactNode }) => (
     <h1 className="text-2xl font-bold text-gold mt-6 mb-3 first:mt-0">{children}</h1>
   ),
-  h2: ({ children }: { children?: React.ReactNode }) => (
+  h2: ({ children }: { children?: ReactNode }) => (
     <h2 className="text-xl font-semibold text-gold/90 mt-5 mb-2">{children}</h2>
   ),
-  h3: ({ children }: { children?: React.ReactNode }) => (
+  h3: ({ children }: { children?: ReactNode }) => (
     <h3 className="text-lg font-medium text-star-light mt-4 mb-2">{children}</h3>
   ),
-  p: ({ children }: { children?: React.ReactNode }) => (
+  p: ({ children }: { children?: ReactNode }) => (
     <p className="mb-3 leading-relaxed">{children}</p>
   ),
-  strong: ({ children }: { children?: React.ReactNode }) => (
+  strong: ({ children }: { children?: ReactNode }) => (
     <strong className="text-gold font-semibold">{children}</strong>
   ),
-  em: ({ children }: { children?: React.ReactNode }) => (
+  em: ({ children }: { children?: ReactNode }) => (
     <em className="text-star-light not-italic font-medium">{children}</em>
   ),
-  ul: ({ children }: { children?: React.ReactNode }) => (
+  ul: ({ children }: { children?: ReactNode }) => (
     <ul className="list-none space-y-1.5 mb-3 pl-4">{children}</ul>
   ),
-  ol: ({ children }: { children?: React.ReactNode }) => (
+  ol: ({ children }: { children?: ReactNode }) => (
     <ol className="list-decimal list-inside space-y-1.5 mb-3 pl-2">{children}</ol>
   ),
-  li: ({ children }: { children?: React.ReactNode }) => (
+  li: ({ children }: { children?: ReactNode }) => (
     <li className="relative pl-4 before:content-['◆'] before:absolute before:left-0 before:text-star/60 before:text-xs">
       {children}
     </li>
   ),
-  blockquote: ({ children }: { children?: React.ReactNode }) => (
+  blockquote: ({ children }: { children?: ReactNode }) => (
     <blockquote className="border-l-2 border-gold/40 pl-4 my-3 italic text-text-secondary bg-gold/5 rounded-r-lg">
       {children}
     </blockquote>
   ),
-  code: ({ children, className }: { children?: React.ReactNode; className?: string }) => (
+  code: ({ children, className }: { children?: ReactNode; className?: string }) => (
     className ? (
       <code className={`${className} px-2 py-0.5 rounded bg-white/10 text-star-light text-sm`}>
         {children}
@@ -143,7 +144,7 @@ const MarkdownComponents = {
       <code className="px-1.5 py-0.5 rounded bg-gold/10 text-gold text-sm">{children}</code>
     )
   ),
-  a: ({ children, href }: { children?: React.ReactNode; href?: string }) => (
+  a: ({ children, href }: { children?: ReactNode; href?: string }) => (
     <a 
       href={href} 
       className="text-star-light hover:text-gold underline transition-colors"
@@ -215,14 +216,14 @@ export function ChartInterpretation() {
       
       // 如果对话历史为空，初始化对话历史
       if (chartChatHistory.length === 0) {
-        const knowledge = extractKnowledge(chart, birthInfo.year)
+        const knowledge = extractKnowledge(chart, birthInfo?.year || 1990)
         const contextStr = buildPromptContext(knowledge)
         const initialUserMessage = `请解读以下命盘：
 
 ## 基本信息
-- 阳历：${birthInfo.year}年${birthInfo.month}月${birthInfo.day}日
-- 性别：${birthInfo.gender === 'male' ? '男' : '女'}
-- 五行局：${chart.fiveElementsClass}
+- 阳历：${birthInfo?.year || 1990}年${birthInfo?.month || 1}月${birthInfo?.day || 1}日
+- 性别：${birthInfo?.gender === 'male' ? '男' : '女'}
+- 五行局：${chart?.fiveElementsClass || '未知'}
 
 ${contextStr}
 
@@ -292,7 +293,7 @@ ${contextStr}
 
     try {
       // 提取知识上下文
-      const knowledge = extractKnowledge(chart, birthInfo.year)
+      const knowledge = extractKnowledge(chart, birthInfo?.year || 1990)
       const contextStr = buildPromptContext(knowledge)
 
       // 构建用户消息
@@ -300,9 +301,9 @@ ${contextStr}
       const userMessage = `请解读以下命盘：
 
 ## 基本信息
-- 阳历：${birthInfo.year}年${birthInfo.month}月${birthInfo.day}日
-- 性别：${birthInfo.gender === 'male' ? '男' : '女'}
-- 五行局：${chart.fiveElementsClass}
+- 阳历：${birthInfo?.year || 1990}年${birthInfo?.month || 1}月${birthInfo?.day || 1}日
+- 性别：${birthInfo?.gender === 'male' ? '男' : '女'}
+- 五行局：${chart?.fiveElementsClass || '未知'}
 - 当前年份：${currentYear}年
 
 ${contextStr}
@@ -334,7 +335,7 @@ ${contextStr}
 
       // 保存到服务器历史记录
       try {
-        await fetch('/api/user/history', {
+        await fetch(`${config.apiBaseUrl}/api/user/history`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -342,7 +343,7 @@ ${contextStr}
           },
           body: JSON.stringify({
             type: 'chart',
-            title: `命盘解读 - ${birthInfo.year}年${birthInfo.month}月${birthInfo.day}日`,
+            title: `命盘解读 - ${birthInfo?.year || 1990}年${birthInfo?.month || 1}月${birthInfo?.day || 1}日`,
             content: fullTextRef.current,
             birth_info: birthInfo,
           }),

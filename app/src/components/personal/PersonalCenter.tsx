@@ -3,6 +3,7 @@ import { useAuthStore, usePointsConfigStore } from '@/stores'
 import { api, type PointsLogEntry } from '@/api'
 import { RechargeHistory } from './RechargeHistory'
 import { HistoryPage } from './HistoryPage'
+import { config } from '@/config/environment'
 
 export function PersonalCenter({ onClose }: { onClose: () => void }) {
   const { user, logout, refreshUser } = useAuthStore()
@@ -31,7 +32,7 @@ export function PersonalCenter({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     loadConfigs()
     refreshUser()
-    fetch('/api/points-config').then(r => r.json()).then(d => setInvitePoints(d.invitePoints || 500)).catch(() => {})
+    fetch(`${config.apiBaseUrl}/api/points-config`).then(r => r.json()).then(d => setInvitePoints(d.invitePoints || 500)).catch(() => {})
   }, [])
 
   useEffect(() => {

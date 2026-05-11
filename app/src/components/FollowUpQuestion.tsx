@@ -2,7 +2,7 @@
    追问组件 - 用于在解读后继续提问
    ============================================================ */
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Button } from '@/components/ui'
@@ -14,41 +14,41 @@ import { useAuthStore } from '@/stores'
    ------------------------------------------------------------ */
 
 const MarkdownComponents = {
-  h1: ({ children }: { children?: React.ReactNode }) => (
+  h1: ({ children }: { children?: ReactNode }) => (
     <h1 className="text-xl font-bold text-gold mt-4 mb-2 first:mt-0">{children}</h1>
   ),
-  h2: ({ children }: { children?: React.ReactNode }) => (
+  h2: ({ children }: { children?: ReactNode }) => (
     <h2 className="text-lg font-semibold text-gold/90 mt-3 mb-1">{children}</h2>
   ),
-  h3: ({ children }: { children?: React.ReactNode }) => (
+  h3: ({ children }: { children?: ReactNode }) => (
     <h3 className="text-md font-medium text-star-light mt-2 mb-1">{children}</h3>
   ),
-  p: ({ children }: { children?: React.ReactNode }) => (
+  p: ({ children }: { children?: ReactNode }) => (
     <p className="mb-2 leading-relaxed">{children}</p>
   ),
-  strong: ({ children }: { children?: React.ReactNode }) => (
+  strong: ({ children }: { children?: ReactNode }) => (
     <strong className="text-gold font-semibold">{children}</strong>
   ),
-  em: ({ children }: { children?: React.ReactNode }) => (
+  em: ({ children }: { children?: ReactNode }) => (
     <em className="text-star-light not-italic font-medium">{children}</em>
   ),
-  ul: ({ children }: { children?: React.ReactNode }) => (
+  ul: ({ children }: { children?: ReactNode }) => (
     <ul className="list-none space-y-1 mb-2 pl-3">{children}</ul>
   ),
-  ol: ({ children }: { children?: React.ReactNode }) => (
+  ol: ({ children }: { children?: ReactNode }) => (
     <ol className="list-decimal list-inside space-y-1 mb-2 pl-1">{children}</ol>
   ),
-  li: ({ children }: { children?: React.ReactNode }) => (
+  li: ({ children }: { children?: ReactNode }) => (
     <li className="relative pl-3 before:content-['◆'] before:absolute before:left-0 before:text-star/60 before:text-xs">
       {children}
     </li>
   ),
-  blockquote: ({ children }: { children?: React.ReactNode }) => (
+  blockquote: ({ children }: { children?: ReactNode }) => (
     <blockquote className="border-l-2 border-gold/40 pl-3 my-2 italic text-text-secondary">
       {children}
     </blockquote>
   ),
-  code: ({ children, className }: { children?: React.ReactNode; className?: string }) => (
+  code: ({ children, className }: { children?: ReactNode; className?: string }) => (
     className ? (
       <code className={`${className} px-2 py-0.5 rounded bg-white/10 text-star-light text-sm`}>
         {children}
@@ -57,7 +57,7 @@ const MarkdownComponents = {
       <code className="px-1.5 py-0.5 rounded bg-gold/10 text-gold text-sm">{children}</code>
     )
   ),
-  a: ({ children, href }: { children?: React.ReactNode; href?: string }) => (
+  a: ({ children, href }: { children?: ReactNode; href?: string }) => (
     <a 
       href={href} 
       className="text-star-light hover:text-gold underline transition-colors"
@@ -248,7 +248,7 @@ export function FollowUpQuestion({
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+              if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
                 requireAuth(() => handleSubmit(e))
               }

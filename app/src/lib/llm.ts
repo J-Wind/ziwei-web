@@ -1,6 +1,6 @@
 /* ============================================================  多模型适配层  支持 Kimi / Gemini / Claude / DeepSeek  通过后端服务代理  ============================================================ */
 
-export type ModelProvider = 'kimi' | 'gemini' | 'claude' | 'deepseek' | 'custom'
+export type ModelProvider = 'kimi' | 'gemini' | 'claude' | 'deepseek' | 'custom' | string
 
 export interface LLMConfig {
   provider: ModelProvider
@@ -11,7 +11,7 @@ export interface LLMConfig {
 }
 
 export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant'
+  role: 'system' | 'user' | 'assistant' | string
   content: string
 }
 
