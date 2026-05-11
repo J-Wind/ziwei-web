@@ -1,0 +1,9 @@
+name: ziwei-web
+
+services:
+  - name: web
+    type: dockerfile
+    dockerfilePath: Dockerfile
+    buildCommand: npm install && npm run build
+    ports:
+      - 80
